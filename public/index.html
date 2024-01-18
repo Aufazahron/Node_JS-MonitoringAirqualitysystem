@@ -1,0 +1,183 @@
+<!-- index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Potensiometer Monitor</title>
+  <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      text-align: center;
+    }
+    .p {
+      text-align: center;
+    }
+
+    .charts-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-evenly;
+      margin: 10px;
+    }
+
+    .chart-container {
+      width: 32%;
+      margin: 10px;
+    }
+
+    @media only screen and (max-width: 768px) {
+      .chart-container {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>IOT Monitoring Air Quality Gas System</h1>
+  <div class="p" id="lastUpdated">Last Updated: </div>
+  <div class="charts-container">
+    <div class="chart-container">
+      <canvas id="potChart1"></canvas>
+    </div>
+    <div class="chart-container">
+      <canvas id="potChart2"></canvas>
+    </div>
+    <div class="chart-container">
+      <canvas id="potChart3"></canvas>
+    </div>
+    <div class="chart-container">
+      <canvas id="potChart4"></canvas>
+    </div>
+    <div class="chart-container">
+      <canvas id="potChart5"></canvas>
+    </div>
+    <div class="chart-container">
+      <canvas id="potChart6"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+
+    // Inisialisasi data chart
+    const potValues1 = Array.from({ length: 25 }, () => null);
+    const potValues2 = Array.from({ length: 25 }, () => null);
+    const potValues3 = Array.from({ length: 25 }, () => null);
+    const potValues4 = Array.from({ length: 25 }, () => null);
+    const potValues5 = Array.from({ length: 25 }, () => null);
+    const potValues6 = Array.from({ length: 25 }, () => null);
+
+    // Inisialisasi chart
+    const potChart1 = createChart('potChart1', 'CO', potValues1);
+    const potChart2 = createChart('potChart2', 'NO2', potValues2);
+    const potChart3 = createChart('potChart3', 'NH3', potValues3);
+    const potChart4 = createChart('potChart4', 'Air Quality', potValues4);
+    const potChart5 = createChart('potChart5', 'Humidity', potValues5);
+    const potChart6 = createChart('potChart6', 'Temperature', potValues6);
+
+    socket.on('potensiometer', function(potValues) {
+      // Memindahkan semua nilai ke kiri
+      potValues1.shift();
+      potValues2.shift();
+      potValues3.shift();
+      potValues4.shift();
+      potValues5.shift();
+      potValues6.shift();
+
+      // Menambahkan nilai baru ke akhir
+      potValues1.push(potValues.value1);
+      potValues2.push(potValues.value2);
+      potValues3.push(potValues.value3);
+      potValues4.push(potValues.value4);
+      potValues5.push(potValues.value5);
+      potValues6.push(potValues.value6);
+
+      // Mengupdate data pada chart
+      potChart1.data.datasets[0].data = potValues1;
+      potChart2.data.datasets[0].data = potValues2;
+      potChart3.data.datasets[0].data = potValues3;
+      potChart4.data.datasets[0].data = potValues4;
+      potChart5.data.datasets[0].data = potValues5;
+      potChart6.data.datasets[0].data = potValues6;
+
+      // Mengupdate chart
+      potChart1.update();
+      potChart2.update();
+      potChart3.update();
+      potChart4.update();
+      potChart5.update();
+      potChart6.update();
+    });
+
+    function createChart(canvasId, label, data) {
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      return new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: Array.from({ length: 25 }, (_, i) => i),
+          datasets: [
+            {
+              label: label,
+              borderColor: getRandomColor(),
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              data: data,
+            }
+          ]
+        },
+        options: {
+          scales: {
+            x: {
+              type: 'linear',
+              position: 'bottom',
+              max: 24,
+            }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  var label = context.dataset.label || '';
+                  if (label) {
+                    label += ': ';
+                  }
+                  if (context.parsed.y !== null) {
+                    label += context.parsed.y.toFixed(2);
+                  }
+                  return label;
+                },
+                title: function(context) {
+                  return 'Waktu: ' + new Date().toLocaleTimeString();
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function getRandomColor() {
+      const letters = '0123456789ABCDEF';
+      let color = '#';
+      for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+      }
+      return color;
+    }
+    function updateLastUpdated() {
+      const lastUpdatedElement = document.getElementById('lastUpdated');
+      const currentTime = new Date();
+      const formattedTime = currentTime.toLocaleString();
+      lastUpdatedElement.textContent = 'Last Updated: ' + formattedTime;
+    }
+  </script>
+</body>
+</html>
